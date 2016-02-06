@@ -1,0 +1,23 @@
+{
+  "name": "musicsync",
+  "version": "1.0.0",
+  "description": "Sync music between multiple computers",
+  "main": "src/index.js",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/jonathanmcelroy/musicSync.git"
+  },
+  "keywords": [
+    "music",
+    "sync"
+  ],
+  "author": "Jonathan McElroy",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/jonathanmcelroy/musicSync/issues"
+  },
+  "homepage": "https://github.com/jonathanmcelroy/musicSync#readme",
+  "dependencies": {
+    "webtorrent": "^0.73.0"
+  }
+}
