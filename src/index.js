@@ -1,32 +1,51 @@
-var WebTorrent = require('webtorrent')
-var fs = require('fs');
+/*
+ * First, create a unique identifier for this instance of the app.
+ * Then, add that identifier to the set of identifiers in the redis store.
+ * Then, for each other identifier, initiate a connection with it.
+ * Then, create a tree of the current files in the system.
+ * Then, share that tree with the connected peers.
+ * Then, conbine that tree with the trees of the other peers.
+ * If the user indicates that they want a song, start downloading it.
+ */
 
-var client = new WebTorrent()
-console.log('Created client');
-var magnetURI = 'magnet:?xt=urn:btih:d4d06d4b7d9f51c8b419346a21ca57f04c44431e&dn=musicSyncInfo&tr=udp%3A%2F%2Ftracker.openbittorrent.com%3A80&tr=udp%3A%2F%2Fopen.demonii.com%3A1337&tr=udp%3A%2F%2Ftracker.coppersurfer.tk%3A6969&tr=udp%3A%2F%2Ftracker.leechers-paradise.org%3A6969'
+/*
+var process = require('process');
+var redis = require("./redis");
 
-client.add(magnetURI, function (torrent) {
-  // Got torrent metadata!
-  console.log('Client is downloading:', torrent.infoHash)
+if (process.argv.length < 3) {
+    console.log("USAGE: node index.js ID");
+    process.exit(1);
+}
 
-  /*torrent.files.forEach(function (file) {
-    // Display the file by appending it to the DOM. Supports video, audio, images, and
-    // more. Specify a container element (CSS selector or reference to DOM node).
-    file.getBuffer((err, contents) => {
-        if (err) throw err;
-        fs.writeFile("test.txt", contents, err => {
-            if (err) throw err;
-            console.log("Wrote file");
-        });
-    });
-  })*/
+var id = process.argv[2];
+redis(id, swarm => {
+    console.log(swarm);
+});
 
-  var n = 1;
-  setInterval(() => {
-      console.log('----------------');
-      console.log(n + ':');
-      torrent.swarm.wires.forEach(wire => console.log(wire.peerId));
-      console.log('----------------');
-      n++;
-  }, 1000);
+// redis.connect("12345");
+// redis.del('foo');
+*/
+
+var Peer = require('simple-peer')
+var p = new Peer({ initiator: location.hash === '#1', trickle: false })
+
+p.on('error', function (err) { console.log('error', err) })
+
+p.on('signal', function (data) {
+  console.log('SIGNAL', JSON.stringify(data))
+  document.querySelector('#outgoing').textContent = JSON.stringify(data)
+})
+
+document.querySelector('form').addEventListener('submit', function (ev) {
+  ev.preventDefault()
+  p.signal(JSON.parse(document.querySelector('#incoming').value))
+})
+
+p.on('connect', function () {
+  console.log('CONNECT')
+  p.send('whatever' + Math.random())
+})
+
+p.on('data', function (data) {
+  console.log('data: ' + data)
 })

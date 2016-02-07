@@ -18,6 +18,8 @@
   },
   "homepage": "https://github.com/jonathanmcelroy/musicSync#readme",
   "dependencies": {
+    "redis": "^2.4.2",
+    "simple-peer": "^5.11.9",
     "webtorrent": "^0.73.0"
   }
 }
