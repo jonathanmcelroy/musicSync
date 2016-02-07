@@ -14,6 +14,7 @@ function Swarm(id) {
     redis(client => {
         client.sadd("swarm", id, err => {
             if (err) throw err;
+            console.log("Added id", id)
         });
     });
 

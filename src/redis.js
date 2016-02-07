@@ -1,29 +1,30 @@
-var redis = require('redis')
-var fs = require('fs')
+const redis = require('redis');
+const fs = require('fs');
+const P = require('bluebird');
+
+P.promisifyAll(redis.RedisClient.prototype);
+P.promisifyAll(redis.Multi.prototype);
+const readFile = P.promisify(fs.readFile);
 
 module.exports = function(callback) {
-    fs.readFile('redis.json', (err, contents) => {
-        if (err) throw err;
-
+    readFile('redis.json')
+    .catch(err => throw err);
+    .then(contents => {
         j = JSON.parse(contents);
         port = j.port;
         address = j.address;
 
         client = redis.createClient(port, address);
-
-        client.auth('musicsync', function (err) {
-            if (err) throw err;
-        });
-
         client.on("error", function (err) {
             console.log("Error " + err);
             throw err;
         });
 
+        client.auth('musicsync');
         callback(client);
-
         client.quit();
-    });
+    })
+    .catch(err => throw err);
 }
 
 

@@ -7,7 +7,7 @@ var mainWindow = null;
 
 var INDEX = 'file://' + __dirname + '/../static/index.html';
 if (process.argv.length >= 3) {
-    INDEX += "#" + precess.argv[2];
+    INDEX += "#" + process.argv[2];
 }
 
 // Quit when all windows are closed.
