@@ -1,7 +1,7 @@
 var redis = require('redis')
 var fs = require('fs')
 
-module.exports = function(id, callback) {
+module.exports = function(callback) {
     fs.readFile('redis.json', (err, contents) => {
         if (err) throw err;
 
@@ -17,22 +17,15 @@ module.exports = function(id, callback) {
 
         client.on("error", function (err) {
             console.log("Error " + err);
+            throw err;
         });
 
-        client.sadd("swarm", id, err => {
-            if (err) throw err;
-        });
-        client.smembers("swarm", (err, reply) => {
-            if (err) throw err;
-            callback(reply);
-        });
-        client.srem("swarm", id, err => {
-            if (err) throw err;
-        });
+        callback(client);
 
         client.quit();
     });
 }
+
 
 // client.set("foo", "bar", redis.print);
 

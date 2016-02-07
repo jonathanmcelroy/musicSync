@@ -6,10 +6,13 @@
   </head>
   <body>
     <h1>Hello World!</h1>
-    We are using node <script>document.write(process.versions.node)</script>,
-    Chrome <script>document.write(process.versions.chrome)</script>,
-    and Electron <script>document.write(process.versions.electron)</script>.
-    <div id="content"></div>
+    <div id="content">
+        <h3>Id:</h3>
+        <p id="clientId">Unknown</p>
+        <h3>Peers:</h3>
+        <ul id="peers"></ul>
+        <button id="resetSwarm">Reset Connections</button>
+    </div>
     <script>
         require("../src/desktop.js")
     </script>

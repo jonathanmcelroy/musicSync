@@ -18,8 +18,10 @@
   },
   "homepage": "https://github.com/jonathanmcelroy/musicSync#readme",
   "dependencies": {
+    "node-uuid": "^1.4.7",
     "redis": "^2.4.2",
     "simple-peer": "^5.11.9",
+    "uuid": "^2.0.1",
     "webtorrent": "^0.73.0"
   }
 }
