@@ -1,34 +1,45 @@
+module.exports = Swarm
+
+var EventEmiter = require('events');
+var inherits = require('util').inherits;
+
 var redis = require('./redis');
 
-module.exports.addToSwarm = function(id) {
+inherits(Swarm, EventEmiter);
+
+// TODO: this should manage whether redis store it.
+// TODO: this should manage the peer connections
+// TODO: this should build the peer connections from the peer's connections
+function Swarm(id) {
     redis(client => {
         client.sadd("swarm", id, err => {
             if (err) throw err;
         });
-    })
-}
-
-module.exports.removeFromSwarm = function(id) {
-    redis(client => {
-        client.srem("swarm", id, err => {
-            if (err) throw err;
-        });
     });
-}
 
-module.exports.getSwarm = function(callback) {
-    redis(client => {
-        client.smembers("swarm", (err, reply) => {
-            if (err) throw err;
-            callback(reply);
+    this.getSwarm = function(callback) {
+        redis(client => {
+            client.smembers("swarm", (err, reply) => {
+                if (err) throw err;
+                callback(reply);
+            });
         });
-    });
-}
+    }
 
-module.exports.resetSwarm = function() {
-    redis(client => {
-        client.del("swarm", err => {
-            if (err) throw err;
+    // TODO: when resetting, add myself back to the swarm
+    this.resetSwarm = function() {
+        redis(client => {
+            client.del("swarm", err => {
+                if (err) throw err;
+            });
+        });
+    }
+
+    this.on('close', () => {
+        redis(client => {
+            client.srem("swarm", id, err => {
+                if (err) throw err;
+            });
         });
     });
 }

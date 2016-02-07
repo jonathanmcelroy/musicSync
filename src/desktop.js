@@ -7,11 +7,11 @@
  * Then, conbine that tree with the trees of the other peers.
  * If the user indicates that they want a song, start downloading it.
  */
-window.onload = function() {
-    const fs = require('fs')
-    const uuid = require('uuid')
-    const swarm = require('./swarm');
+const fs = require('fs')
+const uuid = require('uuid')
+const swarm = require('./swarm');
 
+window.onload = function() {
     var id;
     try {
         const j = fs.readFileSync('id.json');
@@ -74,7 +74,3 @@ window.onload = function() {
    console.log('data: ' + data)
    })
    */
-
-/*
- * 
- */
