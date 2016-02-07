@@ -1,51 +1,32 @@
-/*
- * First, create a unique identifier for this instance of the app.
- * Then, add that identifier to the set of identifiers in the redis store.
- * Then, for each other identifier, initiate a connection with it.
- * Then, create a tree of the current files in the system.
- * Then, share that tree with the connected peers.
- * Then, conbine that tree with the trees of the other peers.
- * If the user indicates that they want a song, start downloading it.
- */
+const electron = require('electron');
+const app = electron.app;                       
+const BrowserWindow = electron.BrowserWindow;
 
-/*
-var process = require('process');
-var redis = require("./redis");
+// Keep a global reference of the window object, if you don't, the window will
+// be closed automatically when the JavaScript object is garbage collected.
+var mainWindow = null;
 
-if (process.argv.length < 3) {
-    console.log("USAGE: node index.js ID");
-    process.exit(1);
-}
-
-var id = process.argv[2];
-redis(id, swarm => {
-    console.log(swarm);
+// Quit when all windows are closed.
+app.on('window-all-closed', function() {
+  if (process.platform != 'darwin') {
+    app.quit();
+  }
 });
 
-// redis.connect("12345");
-// redis.del('foo');
-*/
+// This method will be called when Electron has finished
+// initialization and is ready to create browser windows.
+app.on('ready', function() {
+  // Create the browser window.
+  mainWindow = new BrowserWindow({width: 800, height: 600});
 
-var Peer = require('simple-peer')
-var p = new Peer({ initiator: location.hash === '#1', trickle: false })
+  // and load the index.html of the app.
+  mainWindow.loadURL('file://' + __dirname + '/../static/index.html');
 
-p.on('error', function (err) { console.log('error', err) })
-
-p.on('signal', function (data) {
-  console.log('SIGNAL', JSON.stringify(data))
-  document.querySelector('#outgoing').textContent = JSON.stringify(data)
-})
-
-document.querySelector('form').addEventListener('submit', function (ev) {
-  ev.preventDefault()
-  p.signal(JSON.parse(document.querySelector('#incoming').value))
-})
-
-p.on('connect', function () {
-  console.log('CONNECT')
-  p.send('whatever' + Math.random())
-})
-
-p.on('data', function (data) {
-  console.log('data: ' + data)
-})
+  // Emitted when the window is closed.
+  mainWindow.on('closed', function() {
+    // Dereference the window object, usually you would store windows
+    // in an array if your app supports multi windows, this is the time
+    // when you should delete the corresponding element.
+    mainWindow = null;
+  });
+});
