@@ -11,24 +11,31 @@ const Swarm = require('./swarm');
 const redis = require('./redis');
 const getId = require('./id');
 
-window.onload = function() {
-    const id = getId(location.hash);
-    document.getElementById("clientId").innerHTML = id;
+const id = getId(location.hash);
+const swarm = new Swarm(id);
 
-    const swarm = new Swarm(id);
+window.onload = function() {
+    document.getElementById("clientId").innerHTML = id;
 
     setInterval(() => {
         swarm.getSwarm().then(s => {
             const peers = document.getElementById('peers');
             peers.innerHTML = "";
             s.forEach(peer => peers.innerHTML += '<li>' + peer + '</li>');
-            console.log(s);
+        });
+        swarm.getAddress().then(address => {
+            const addr = document.getElementById('address');
+            addr.innerHTML = address;
         });
     }, 1000);
 
     document.getElementById('resetSwarm').onclick = function() {
         swarm.resetSwarm();
     }
+}
+window.onbeforeunload = function(e) {
+    swarm.close();
+    e.returnValue = true;
 }
 
 /*
