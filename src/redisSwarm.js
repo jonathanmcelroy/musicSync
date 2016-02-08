@@ -1,40 +1,40 @@
-module.exports = Swarm
+module.exports = RedisSwarm;
 
 const P = require('bluebird');
 
 const redis = require('./redis');
 
-function Swarm(id) {
+function RedisSwarm(id) {
+    const self = this;
     redis(client => {
-        client.sadd("swarm", id, err => {
-            if (err) throw err;
-            console.log("Added id", id)
+        client.saddSync("swarm", id)
+    });
+
+    this.getSwarm = () => redis(client => client.smembersAsync("swarm"));
+
+    // TODO: when resetting, add myself back to the swarm
+    this.resetSwarm = () => redis(client => {
+        P.all([
+            client.delAsync("swarm"),
+            client.delAsync("availableConnections")
+        ]);
+    });
+
+    this.setPeerConnection = connection => redis(client => client.hmsetAsync("availableConnections", id, connection));
+    this.getPeerConnection = otherId => redis(client => client.hmgetAsync("availableConnections", id));
+    this.clearPeerConnection = () => redis(client => client.hdelAsync("availableConnections", id));
+
+    this.getAPeerConnection = () => redis(client => {
+        self.getSwarm().then(swarm => {
+            const otherId = swarm.find(oId => oId == id);
+            return self.getPeerConnection(otherId);
         });
     });
 
-    this.getSwarm = function(callback) {
-        redis(client => {
-            client.smembers("swarm", (err, reply) => {
-                if (err) throw err;
-                callback(reply);
-            });
-        });
-    }
-
-    // TODO: when resetting, add myself back to the swarm
-    this.resetSwarm = function() {
-        redis(client => {
-            client.del("swarm", err => {
-                if (err) throw err;
-            });
-        });
-    }
-
-    this.on('close', () => {
-        redis(client => {
-            client.srem("swarm", id, err => {
-                if (err) throw err;
-            });
-        });
+    this.close = () => redis(client => {
+        P.all([
+            client.sremAsync("swarm", id),
+            client.hdelAsync("availableConnections", id)
+        ]);
     });
 }

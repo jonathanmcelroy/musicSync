@@ -13,12 +13,11 @@ module.exports = function(callback) {
         address = j.address;
         const client = redis.createClient(port, address);
         client.then(c => {
-            c.authAsync('musicsync')
+            c.authAsync('musicsync');
         }).then(_ => {
-            return callback(client)
+            return callback(client);
         }).finally(() => {
-            return client.quit()
+            return client.quit();
         });
     });
-
 }
