@@ -3,6 +3,8 @@ module.exports = PeerConnection;
 const Peer = require('simple-peer');
 
 // TODO: this should manage a connection
+// TODO: this should manage the peer connections
+// TODO: this should build the peer connections from the peer's connections
 function PeerConnection(peerAddress) {
     // TODO: make the check that peerAddress is valid better
     const peer = Peer({initiator: !peerAddress});

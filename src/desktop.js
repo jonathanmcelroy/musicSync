@@ -8,6 +8,7 @@
  * If the user indicates that they want a song, start downloading it.
  */
 const Swarm = require('./swarm');
+const redis = require('./redis');
 const getId = require('./id');
 
 window.onload = function() {
@@ -17,12 +18,11 @@ window.onload = function() {
     const swarm = new Swarm(id);
 
     setInterval(() => {
-        swarm.getSwarm(swarm => {
+        swarm.getSwarm().then(s => {
             const peers = document.getElementById('peers');
             peers.innerHTML = "";
-            swarm.forEach(peer => peers.innerHTML += '<li>' + peer + '</li>');
-
-            console.log(swarm);
+            s.forEach(peer => peers.innerHTML += '<li>' + peer + '</li>');
+            console.log(s);
         });
     }, 1000);
 

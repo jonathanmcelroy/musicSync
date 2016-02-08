@@ -4,10 +4,11 @@ const P = require('bluebird');
 
 const redis = require('./redis');
 
+// TODO: this should manage whether redis store it.
 function RedisSwarm(id) {
     const self = this;
     redis(client => {
-        client.saddSync("swarm", id)
+        client.saddAsync("swarm", id)
     });
 
     this.getSwarm = () => redis(client => client.smembersAsync("swarm"));
