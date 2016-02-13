@@ -17,6 +17,7 @@ const swarm = new Swarm(id);
 window.onload = function() {
     document.getElementById("clientId").innerHTML = id;
 
+    /*
     setInterval(() => {
         swarm.getSwarm().then(s => {
             const peers = document.getElementById('peers');
@@ -28,6 +29,7 @@ window.onload = function() {
             addr.innerHTML = address;
         });
     }, 1000);
+    */
 
     document.getElementById('resetSwarm').onclick = function() {
         swarm.resetSwarm();
@@ -37,15 +39,6 @@ window.onbeforeunload = function(e) {
     swarm.close();
     e.returnValue = true;
 }
-
-/*
-   redis(id, swarm => {
-   console.log(swarm);
-   });
-
-// redis.connect("12345");
-// redis.del('foo');
-*/
 /*
    var Peer = require('simple-peer')
    var p = new Peer({ initiator: location.hash === '#1', trickle: false })

@@ -1,41 +1,68 @@
 module.exports = RedisSwarm;
 
+const redisExecuter = require('./redis');
 const P = require('bluebird');
 
-const redis = require('./redis');
+/*
+ * swarm: Set ID
+ * ID:availableConnection: ListenerConnection
+ * ID:attemptingConnections: [AttemptConnection]
+ */
+function RedisSwarm(redis, id) {
+    // () => Promise ()
+    this.addToSwarm = () => redisExecuter(redis, client => client.saddAsync("swarm", id));
 
-// TODO: this should manage whether redis store it.
-function RedisSwarm(id) {
-    const self = this;
-    redis(client => {
-        client.saddAsync("swarm", id)
-    });
+    // () -> Promise (Set ID)
+    this.getSwarm = () => redisExecuter(redis, client => client.smembersAsync("swarm"));
 
-    this.getSwarm = () => redis(client => client.smembersAsync("swarm"));
-
+    // () -> Promise ()
     // TODO: when resetting, add myself back to the swarm
-    this.resetSwarm = () => redis(client => {
-        P.all([
-            client.delAsync("swarm"),
-            client.delAsync("availableConnections")
-        ]);
-    });
+    this.resetSwarm = () => redisExecuter(redis, client => client.flushdbAsync());
 
-    this.setPeerConnection = connection => redis(client => client.hmsetAsync("availableConnections", id, connection));
-    this.getPeerConnection = otherId => redis(client => client.hmgetAsync("availableConnections", id));
-    this.clearPeerConnection = () => redis(client => client.hdelAsync("availableConnections", id));
+    // ID -> ListenerConnection -> Promise ()
+    this.addInitiation = (otherID, connection) => 
+        redisExecuter(redis, client => 
+            client.rpushAsync(otherID + ":initializingConnections", JSON.stringify({
+                id: id,
+                initCode: connection
+            }))
+        );
+    // () -> Promise [ListenerConnection]
+    this.getPeerInitiations = () => redisExecuter(redis, client =>
+        client.lrangeAsync(id + ":initializingConnections", 0, -1)
+            .then(others => others.map(JSON.parse))
+    );
+    // () -> Promise [ListenerConnection]
+    this.getAndClearPeerInitiations = () => redisExecuter(redis, client =>
+        client.lrangeAsync(id + ":initializingConnections", 0, -1)
+            .then(others => others.map(JSON.parse))
+            .finally(() => client.delAsync(id + ":initializingConnections"))
+    );
 
-    this.getAPeerConnection = () => redis(client => {
-        self.getSwarm().then(swarm => {
-            const otherId = swarm.find(oId => oId == id);
-            return self.getPeerConnection(otherId);
-        });
-    });
+    // ID -> AttemptConnection -> Promise ()
+    this.addAttemptConnection = (otherId, connection) =>
+        redisExecuter(redis, client => client.rpushAsync(otherId + ":attemptingConnections", JSON.stringify({
+            id: id,
+            attemptCode: connection
+        })));
+    // () -> Promise AttemptConnection
+    this.getAttemptedConnections = () => redisExecuter(redis, client =>
+        client.lrangeAsync(id + ":attemptingConnections", 0, -1)
+            .then(others => others.map(JSON.parse))
+    );
+    // () -> Promise AttemptConnection
+    this.getAndClearAttemptedConnections = () => redisExecuter(redis, client =>
+        client.lrangeAsync(id + ":attemptingConnections", 0, -1)
+            .then(others => others.map(JSON.parse))
+            .finally(() => client.delAsync(id + ":attemptingConnections"))
+    );
 
-    this.close = () => redis(client => {
+    // () -> Promise ()
+    this.close = () => redisExecuter(redis, client => {
         P.all([
             client.sremAsync("swarm", id),
-            client.hdelAsync("availableConnections", id)
+            client.delAsync(id + ":initializingConnections"),
+            client.delAsync(id + ":attemptingConnections"),
         ]);
     });
 }
