@@ -9,30 +9,23 @@ const P = require('bluebird');
  * ID:attemptingConnections: [AttemptConnection]
  */
 function RedisSwarm(redis, id) {
-    // () => Promise ()
     this.addToSwarm = () => redisExecuter(redis, client => client.saddAsync("swarm", id));
-
-    // () -> Promise (Set ID)
     this.getSwarm = () => redisExecuter(redis, client => client.smembersAsync("swarm"));
 
     // () -> Promise ()
     // TODO: when resetting, add myself back to the swarm
     this.resetSwarm = () => redisExecuter(redis, client => client.flushdbAsync());
 
-    // ID -> ListenerConnection -> Promise ()
-    this.addInitiation = (otherID, connection) => 
-        redisExecuter(redis, client => 
-            client.rpushAsync(otherID + ":initializingConnections", JSON.stringify({
-                id: id,
-                initCode: connection
-            }))
-        );
-    // () -> Promise [ListenerConnection]
+    this.addInitiation = (otherID, connection) => redisExecuter(redis, client =>
+        client.rpushAsync(otherID + ":initializingConnections", JSON.stringify({
+            id: id,
+            initCode: connection
+        }))
+    );
     this.getPeerInitiations = () => redisExecuter(redis, client =>
         client.lrangeAsync(id + ":initializingConnections", 0, -1)
             .then(others => others.map(JSON.parse))
     );
-    // () -> Promise [ListenerConnection]
     this.getAndClearPeerInitiations = () => redisExecuter(redis, client =>
         client.lrangeAsync(id + ":initializingConnections", 0, -1)
             .then(others => others.map(JSON.parse))

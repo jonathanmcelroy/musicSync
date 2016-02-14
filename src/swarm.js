@@ -1,98 +1,107 @@
 module.exports = Swarm
 
 const P = require('bluebird');
+const redis = require('fakeredis');
 const Peer = require('simple-peer');
+const eToP = require('event-to-promise');
+P.promisifyAll(redis.RedisClient.prototype);
+P.promisifyAll(redis.Multi.prototype);
 
-const RedisSwarm = require('./redisSwarm');
-const Redis = require('./redis');
-const PeerConnection = require('./peerConnection');
+const RedisCoordinator = require('./redisCoordinator');
 
-// TODO: this should manage whether redis store it.
-// TODO: this should manage the peer connections
-// TODO: this should build the peer connections from the peer's connections
 function Swarm(id) {
     const self = this;
-    const redisSwarm = new RedisSwarm(Redis, id);
-    const redisSwarm2 = new RedisSwarm("1");
+    const redisCoordinator = new RedisCoordinator(redis, id);
+    redisCoordinator.setAsCoordinator();
+    const redisCoordinatorOther = new RedisCoordinator(redis, "otherId");
 
-    var peer;
-    var otherPeer;
+    var peerConnections = new Map();
+    var otherPeerConnections = new Map();
 
-    // var myAddress = peerConnection.getAddress();
-    // myAddress.then(address => redisSwarm.setPeerConnection(address));
-
-    var peers = new Set();
-    // var peerConnections = {};
-
-    setInterval(() => {
-        self.initiateWithNewPeers();
-        self.respondToInitiatingPeers();
-        self.connectToRespondingPeers();
+    var count = 5;
+    const intId = setInterval(() => {
+        console.log("PEERS:", peerConnections);
+        console.log("OTHER PEERS:", otherPeerConnections);
+        redisCoordinator.getCoordinator().then(coordId => {
+            return P.all([
+                self.coordinate(),
+                self.connect(coordId)
+            ]).catch(e => {
+                console.log(e);
+            });
+        });
+        count -= 1;
+        if(count == 0) {
+            window.clearInterval(intId);
+        }
     }, 1000);
 
-    // () -> Promise ()
-    this.initiateWithNewPeers = () => {
-        self.getNewPeers().then(otherIDs => {
-            P.all(otherIDs.map(otherID => {
-                peer = new Peer({'initiator': true});
-                console.log("Adding peer", otherID);
-                peer.on('signal', data => {
-                    redisSwarm.addInitiation(otherID, data);
+    self.coordinate = () => {
+        // console.log("Coordinator:", "coordinateCalled");
+        return redisCoordinator.getInitiatedConnections().then(conns => {
+            console.log("Coordinator:", "connections", conns);
+            return P.all(conns.map(conn => {
+                const otherId = conn.id;
+                const otherCode = conn.code;
+                console.log("Coordinator:", "other code", otherCode);
+                const peer = new Peer();
+
+                const signal = new P(resolve => peer.on('signal', resolve));
+                signal.then(respondCode => {
+                    return redisCoordinator.respondToConnection(otherId, respondCode);
                 });
-                peers.add(otherID);
-                // peerConnections[otherID] = peer;
+                peer.on('data', data => {
+                    console.log('Coordinator:', "data", data);
+                });
+                peer.on('connect', () => {
+                    console.log('Coordinator:', 'connected');
+                    peer.send(id + ": DATA");
+                });
+                peer.signal(otherCode);
+                peerConnections.set(otherId, peer);
+                return signal;
             }));
         });
     };
-    // () -> Promise ()
-    this.respondToInitiatingPeers = () => {
-        redisSwarm2.getPeerInitiations().then(others => {
-            P.all(others.forEach(other => {
-                const otherID = other.id;
-                console.log("responding to peer", otherID);
-                const initCode = other.initCode;
-                otherPeer = new Peer();
-                otherPeer.signal(initCode);
-                otherPeer.on('signal', data => {
-                    redisSwarm.addAttemptConnection(otherID, data);
+    self.connect = coordId => {
+        // console.log("Connector:", "coordinator id", coordId);
+        redisCoordinatorOther.hasSentConnection(coordId).then(hasSent => {
+            // console.log("Connector:", "has sent -", hasSent);
+            if (hasSent) {
+                return redisCoordinatorOther.getResponse(coordId).then(response => {
+                    console.log("Connector:", "response from coordinator", response);
+                    if (response === undefined) {
+                        return
+                    } else {
+                        const otherPeer = otherPeerConnections.get(coordId);
+                        otherPeer.on('data', data => {
+                            console.log("Connector:", "data", data);
+                        });
+                        otherPeer.on('connect', () => {
+                            console.log("Connector:", "connected");
+                        });
+                        otherPeer.signal(response);
+                        console.log("Connected:", response);
+                        return eToP(otherPeer, 'connect');
+                    }
                 });
-                otherPeer.on('data', data => {
-                    console.log(id, data);
+            } else {
+                const peer = new Peer({initiator: true});
+                const signal = new P(resolve => {
+                    return peer.on('signal', resolve);
                 });
-                // peerConnections[otherID] = peer;
-            }));
-        });
-    }
-    this.connectToRespondingPeers = () => {
-        redisSwarm.getAttemptedConnections().then(others => {
-            P.all(others.map(other => {
-                const otherID = other.id;
-                console.log("connecting to peer", otherID);
-                const attempCode = other.attempCode;
-                // const peer = peerConnections[otherID];
-                console.log(attempCode);
-                peer.signal(attempCode);
-                peer.send("Testing");
-            }));
+                otherPeerConnections.set(coordId, peer);
+                return signal.then(initCode => {
+                    console.log("Connector:", "initiating with", initCode);
+                    return redisCoordinatorOther.initiateConnection(coordId, initCode);
+                });
+            }
         });
     };
-
-    // () -> [ID]
-    this.getNewPeers = () => redisSwarm.getSwarm().then(s => {
-        const others = new Set(s);
-        others.delete(id);
-        return Array.from(others).filter(other => !peers.has(other));
-    });
-
-    this.getSwarm = () => redisSwarm.getSwarm();
-    this.close = () => {
-        // TODO: close the PeerConnection
-        redisSwarm.close();
-    }
 
     // TODO: add myself and recover from a reset
     this.resetSwarm = () => {
-        redisSwarm.resetSwarm();
+        redisCoordinator.resetSwarm();
         // peerConnection.close();
     }
 }

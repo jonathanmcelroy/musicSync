@@ -11,7 +11,7 @@ const Swarm = require('./swarm');
 const redis = require('./redis');
 const getId = require('./id');
 
-const id = getId(location.hash);
+const id = getId(location.hash.substr(1));
 const swarm = new Swarm(id);
 
 window.onload = function() {

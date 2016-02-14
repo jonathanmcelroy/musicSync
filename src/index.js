@@ -26,4 +26,6 @@ app.on('ready', function() {
     // Dereference the window object
     mainWindow = null;
   });
+
+  mainWindow.toggleDevTools();
 });
