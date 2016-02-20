@@ -1,3 +1,4 @@
+'use strict'
 module.exports = RedisCoordinator;
 
 const redisExecuter = require('./redis');
@@ -50,6 +51,11 @@ function RedisCoordinator(redis, id) {
             });
         });
     };
+    this.resetMyConnection = coordinatingID => {
+        return redisExecuter(redis, client => {
+            return client.hdelAsync(coordinatingID + ":" + initConnName, id);
+        });
+    };
 
     // Coordinator Commands
     this.getInitiatedConnections = () => {
@@ -58,10 +64,14 @@ function RedisCoordinator(redis, id) {
                 if (result === null) {
                     return []
                 } else {
-                    return Object.keys(result).filter(key => JSON.parse(result[key]).state === "INIT").map(key => ({
-                        id: key,
-                        code: JSON.parse(result[key]).code
-                    }));
+                    return Object.keys(result).filter(key => {
+                        return JSON.parse(result[key]).state === "INIT"
+                    }).map(key => {
+                        return {
+                            id: key,
+                            code: JSON.parse(result[key]).code
+                        };
+                    });
                 }
             });
         });
@@ -72,6 +82,11 @@ function RedisCoordinator(redis, id) {
                 state: "RESPONSE",
                 code: code
             }));
+        });
+    };
+    this.resetOtherConnection = otherId => {
+        return redisExecuter(redis, client => {
+            return client.hdelAsync(id + ":" + initConnName, otherId);
         });
     };
 }

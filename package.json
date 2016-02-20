@@ -19,11 +19,12 @@
   "homepage": "https://github.com/jonathanmcelroy/musicSync#readme",
   "dependencies": {
     "bluebird": "^3.2.2",
-    "event-to-promise": "^0.6.0",
+    "findit": "^2.0.0",
     "node-uuid": "^1.4.7",
-    "promise": "^7.1.1",
     "redis": "^2.4.2",
-    "simple-peer": "^5.11.9",
+    "rx": "^4.0.7",
+    "socket.io-client": "^1.4.5",
+    "socket.io-p2p": "^2.2.0",
     "uuid": "^2.0.1",
     "webtorrent": "^0.73.0"
   },

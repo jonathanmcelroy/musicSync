@@ -1,7 +1,7 @@
+'use strict'
 module.exports = Swarm
 
 const P = require('bluebird');
-const redis = require('fakeredis');
 const Peer = require('simple-peer');
 const eToP = require('event-to-promise');
 P.promisifyAll(redis.RedisClient.prototype);
@@ -12,95 +12,113 @@ const RedisCoordinator = require('./redisCoordinator');
 function Swarm(id) {
     const self = this;
     const redisCoordinator = new RedisCoordinator(redis, id);
-    redisCoordinator.setAsCoordinator();
-    const redisCoordinatorOther = new RedisCoordinator(redis, "otherId");
 
-    var peerConnections = new Map();
-    var otherPeerConnections = new Map();
+    const peerConnections = new Map();
+    var connected = false;
 
-    var count = 5;
+    /*
+    var count = 20;
     const intId = setInterval(() => {
-        console.log("PEERS:", peerConnections);
-        console.log("OTHER PEERS:", otherPeerConnections);
         redisCoordinator.getCoordinator().then(coordId => {
-            return P.all([
-                self.coordinate(),
-                self.connect(coordId)
-            ]).catch(e => {
-                console.log(e);
-            });
+            if (coordId === null) {
+                console.log("Trying to set myself as the coordinator");
+                return redisCoordinator.setAsCoordinator();
+            } else if (coordId === id) {
+                console.log("I am the coordinator");
+                return self.coordinate();
+            } else {
+                console.log("coordinator id:", coordId);
+                return self.connect(coordId);
+            }
         });
         count -= 1;
         if(count == 0) {
             window.clearInterval(intId);
         }
     }, 1000);
+    */
 
     self.coordinate = () => {
-        // console.log("Coordinator:", "coordinateCalled");
         return redisCoordinator.getInitiatedConnections().then(conns => {
-            console.log("Coordinator:", "connections", conns);
             return P.all(conns.map(conn => {
                 const otherId = conn.id;
                 const otherCode = conn.code;
-                console.log("Coordinator:", "other code", otherCode);
-                const peer = new Peer();
+                console.log("other connection", otherId);
 
-                const signal = new P(resolve => peer.on('signal', resolve));
-                signal.then(respondCode => {
-                    return redisCoordinator.respondToConnection(otherId, respondCode);
+                const peer = new Peer();
+                peer.on('error', function(e) {
+                    console.log("ERROR:", e);
+                    redisCoordinator.resetOtherConnection(otherId);
                 });
-                peer.on('data', data => {
+                peer.on('signal', function(respondCode) {
+                    redisCoordinator.respondToConnection(otherId, respondCode);
+                });
+                peer.on('data', function(data) {
                     console.log('Coordinator:', "data", data);
                 });
-                peer.on('connect', () => {
+                peer.on('connect', function() {
                     console.log('Coordinator:', 'connected');
                     peer.send(id + ": DATA");
                 });
                 peer.signal(otherCode);
                 peerConnections.set(otherId, peer);
-                return signal;
+                return peer;
             }));
         });
     };
-    self.connect = coordId => {
+    self.connect = () => redisCoordinator.getCoordinator().then(coordId => {
         // console.log("Connector:", "coordinator id", coordId);
-        redisCoordinatorOther.hasSentConnection(coordId).then(hasSent => {
+        return redisCoordinator.hasSentConnection(coordId).then(hasSent => {
             // console.log("Connector:", "has sent -", hasSent);
             if (hasSent) {
-                return redisCoordinatorOther.getResponse(coordId).then(response => {
-                    console.log("Connector:", "response from coordinator", response);
-                    if (response === undefined) {
-                        return
-                    } else {
-                        const otherPeer = otherPeerConnections.get(coordId);
-                        otherPeer.on('data', data => {
-                            console.log("Connector:", "data", data);
-                        });
-                        otherPeer.on('connect', () => {
-                            console.log("Connector:", "connected");
-                        });
-                        otherPeer.signal(response);
-                        console.log("Connected:", response);
-                        return eToP(otherPeer, 'connect');
-                    }
-                });
+                if (!connected) {
+                    return redisCoordinator.getResponse(coordId).then(response => {
+                        console.log("Connector:", "response from coordinator", response);
+                        if (response === undefined) {
+                            return
+                        } else {
+                            const peer = peerConnections.get(coordId);
+                            if(peer === undefined) {
+                                redisCoordinator.resetMyConnection(coordId);
+                                connected = false;
+                                return;
+                            }
+                            peer.on('data', function(data) {
+                                console.log("Connector:", "data", data);
+                            });
+                            peer.on('connect', function() {
+                                console.log("#######################");
+                                console.log("Connector:", "connected");
+                            });
+                            peer.signal(response);
+                            connected = true;
+                            console.log("Connected:", response);
+                            peerConnections.set(coordId, peer);
+                            console.log(peer);
+                            return peer;
+                        }
+                    });
+                }
             } else {
                 const peer = new Peer({initiator: true});
-                const signal = new P(resolve => {
-                    return peer.on('signal', resolve);
+                peer.on('error', function(e) {
+                    console.log("ERROR:", e);
+                    redisCoordinator.resetMyConnection(coordId);
                 });
-                otherPeerConnections.set(coordId, peer);
-                return signal.then(initCode => {
-                    console.log("Connector:", "initiating with", initCode);
-                    return redisCoordinatorOther.initiateConnection(coordId, initCode);
+                peer.on('signal', function(initCode) {
+                    if (initCode.type === "offer") {
+                        console.log("Connector:", "initiating with", coordId);
+                        return redisCoordinator.initiateConnection(coordId, initCode);
+                    }
                 });
+                peerConnections.set(coordId, peer);
+                return peer;
             }
         });
-    };
+    });
 
     // TODO: add myself and recover from a reset
-    this.resetSwarm = () => {
+    self.resetSwarm = () => {
         redisCoordinator.resetSwarm();
         // peerConnection.close();
     }

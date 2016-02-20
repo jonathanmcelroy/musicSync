@@ -3,23 +3,33 @@
     <head>
         <meta charset="UTF-8">
         <title>Hello World!</title>
+        <link rel="stylesheet" type="text/css" href="./theme.css">
+        <script>
+window.$ = require('./jquery-2.2.0.min.js');
+        </script>
     </head>
     <body>
-        <h1>Hello World!</h1>
-        <div id="content">
-            <h3>Id:</h3>
-            <p id="clientId">Unknown</p>
-            <h3>Peers:</h3>
-            <ul id="peers"></ul>
-            <h3>Address:</h3>
-            <p id="address">Unknown</p>
-            <button id="resetSwarm">Reset Connections</button>
-
-            <form id="connection">
-                <textarea id="incoming"></textarea>
-                <button type="submit">submit</button>
-            </form>
+        <h1>MusicSync</h1>
+        <div id='node-info' class='section'>
+            <div>
+                <span class='name'>Id:</span>
+                <span id="client-id" class='value'>Unknown</span>
+            </div>
         </div>
+        <div id='music' class='section'>
+            <button id='open-music-directory'>Music Directory</button>
+            <div id='music-directory' class='music'>Unknown</div>
+            <ul id='music-list'></ul>
+        </div>
+
+        <div id='message' class='section'>
+            <form id='message-box'>
+                <input id='message-text' type='text' />
+                <input type='submit' value='submit' />
+            </form>
+            <ul id='messages'></ul>
+        </div>
+
         <script>
 require("../src/desktop.js")
         </script>
