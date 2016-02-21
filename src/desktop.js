@@ -32,7 +32,6 @@ $('#message-box').submit(e => {
     $('#messages').append('<li>' + text + '</li>');
 })
 
-$('#music').html('No music directory chosen');
 $('#open-music-directory').click(e => {
     e.preventDefault();
     dialog.showOpenDialog({'properties': ['openDirectory'], 'defaultPath': '/home/jonathan/Downloads'}, dirs => {
