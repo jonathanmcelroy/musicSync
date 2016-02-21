@@ -5,6 +5,7 @@ const dialog = remote.require('dialog');
 
 const getId = require('./id');
 const io = require('socket.io-client');
+const _ = require('lodash');
 
 const Library = require('./library');
 
@@ -35,15 +36,36 @@ $('#message-box').submit(e => {
     $('#messages').append('<li>' + text + '</li>');
 })
 
+$('#music').html('No music directory chosen');
 $('#open-music-directory').click(e => {
     e.preventDefault();
-    dialog.showOpenDialog({'properties': ['openDirectory']}, dirs => {
+    dialog.showOpenDialog({'properties': ['openDirectory'], 'defaultPath': '/home/jonathan/Downloads'}, dirs => {
         // TODO: check if empty
-        const dir = dirs[0];
-        $('#music-directory').html(dir);
-        musicLibrary.setMusicDir(dir).then(songs => {
-            $('#music-list').html(songs.map(song => '<li>' + song + '</li>').join(''));
-        });
+        if (dirs.length > 0) {
+            const dir = dirs[0];
+            $('#music-directory').html(dir);
+            musicLibrary.setMusicDir(dir).then(songs => {
+                const music = $('#music');
+                music.empty();
+                songs.map(song => {
+                    const template = _.template(
+                        '<div class="song">' +
+                        '<div class="song-image"></div>' + //<img src="data:image/<%= format %>;base64,<%= image %>"/></div>' +
+                        '<div class="row"><%= title %></div>' +
+                        '<div class="row"><%= artist %></div>' +
+                        '<div class="row"><%= album %></div>' +
+                        '</div>'
+                    );
+                    music.append(template({
+                        // 'format': song.picture[0].format,
+                        //'image': song.picture[0].data,
+                        'title': song.title,
+                        'artist': song.artist,
+                        'album': song.album
+                    }));
+                });
+            });
+        }
 
     });
 });

@@ -23,6 +23,24 @@ body {
     text-align: center;
 }
 
+.song {
+    width: 200px;
+    height: 280px;
+    margin: 10px;
+
+    background-color: #f7eb6c;
+    float: left;
+    border: 1px solid;
+}
+
+.song-image {
+    width: 200px;
+    height: 200px;
+
+    background: white;
+    float: left;
+}
+
 .section {
     background-color: white;
     float: left;
