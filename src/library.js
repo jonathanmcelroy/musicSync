@@ -8,6 +8,7 @@ const Library = function() {
     const self = this;
 
     const musicFiles = [];
+    const musicData = [];
 
     self.setMusicDir = dir => new P((resolve, reject) => {
         var count = 1;
@@ -21,9 +22,10 @@ const Library = function() {
             const ext = path.extname(file);
             if (ext == '.mp3') {
                 count += 1;
+                musicFiles.push(file);
                 mm(fs.createReadStream(file), (err, metadata) => {
                     if (err) throw err;
-                    musicFiles.push(metadata);
+                    musicData.push(metadata);
                     count -= 1;
                     tryToFinish();
                 });
@@ -34,6 +36,8 @@ const Library = function() {
             tryToFinish();
         });
     });
+
+    self.getMusicData = () => musicData;
 };
 
 module.exports = Library;

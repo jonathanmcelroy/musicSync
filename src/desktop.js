@@ -21,11 +21,7 @@ socket.on('connect', () => {
 socket.on('message', text => {
     $('#messages').append('<li>' + text + '</li>');
 });
-socket.on('music', songs => {
-    var music = $('#music');
-    songs.forEach(song => {
-    })
-});
+socket.on('music', songs => addSongs(songs));
 
 $('#client-id').html(id);
 $('#message-box').submit(e => {
@@ -45,30 +41,38 @@ $('#open-music-directory').click(e => {
             const dir = dirs[0];
             $('#music-directory').html(dir);
             musicLibrary.setMusicDir(dir).then(songs => {
-                const music = $('#music');
-                music.empty();
-                songs.map(song => {
-                    const template = _.template(
-                        '<div class="song">' +
-                        '<div class="song-image"></div>' + //<img src="data:image/<%= format %>;base64,<%= image %>"/></div>' +
-                        '<div class="row"><%= title %></div>' +
-                        '<div class="row"><%= artist %></div>' +
-                        '<div class="row"><%= album %></div>' +
-                        '</div>'
-                    );
-                    music.append(template({
-                        // 'format': song.picture[0].format,
-                        //'image': song.picture[0].data,
-                        'title': song.title,
-                        'artist': song.artist,
-                        'album': song.album
-                    }));
-                });
+                return musicLibrary.getMusicData();
+            }).then(data => {
+                addSongs(data);
+                sendSongs(data);
             });
         }
-
     });
 });
 
+function addSongs(songs) {
+    const music = $('#music');
+    music.empty();
+    songs.map(song => {
+        const template = _.template(
+            '<div class="song">' +
+            '<div class="song-image"></div>' + //<img src="data:image/<%= format %>;base64,<%= image %>"/></div>' +
+            '<div class="row"><%= title %></div>' +
+            '<div class="row"><%= artist %></div>' +
+            '<div class="row"><%= album %></div>' +
+            '</div>'
+        );
+        music.append(template({
+            // 'format': song.picture[0].format,
+            //'image': song.picture[0].data,
+            'title': song.title,
+            'artist': song.artist,
+            'album': song.album
+        }));
+    });
+}
 
-// const swarm = new Swarm(id);
+function sendSongs(songs) {
+    console.log(songs);
+    socket.emit('music', songs);
+}
