@@ -28,7 +28,7 @@
     "socket.io-client": "^1.4.5",
     "socket.io-p2p": "^2.2.0",
     "uuid": "^2.0.1",
-    "webtorrent": "^0.73.0"
+    "webtorrent": "^0.73.2"
   },
   "devDependencies": {
     "chai": "^3.5.0"

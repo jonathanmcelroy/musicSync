@@ -35,7 +35,6 @@ $('#message-box').submit(e => {
 $('#open-music-directory').click(e => {
     e.preventDefault();
     dialog.showOpenDialog({'properties': ['openDirectory'], 'defaultPath': '/home/jonathan/Downloads'}, dirs => {
-        // TODO: check if empty
         if (dirs.length > 0) {
             const dir = dirs[0];
             $('#music-directory').html(dir);
@@ -73,5 +72,11 @@ function addSongs(songs) {
 
 function sendSongs(songs) {
     console.log(songs);
-    socket.emit('music', songs);
+    socket.emit('music', songs.map(song => {
+        return {
+            'title': song.title,
+            'album': song.album,
+            'artist': song.artist
+        };
+    }));
 }
